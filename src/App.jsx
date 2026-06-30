@@ -166,10 +166,16 @@ function StreamTab({ onJobStart }) {
   useEffect(() => {
     if (!jobId) return;
     const iv = setInterval(async () => {
-      const res = await fetch(`${API}/jobs/${jobId}`);
-      const data = await res.json();
-      setJob(data);
-      if (data.status === "done" || data.status === "failed" || data.status === "stopped") clearInterval(iv);
+      try {
+        const res = await fetch(`${API}/jobs/${jobId}`);
+        if (!res.ok) return; // server hiccup — try again next tick
+        const data = await res.json();
+        setJob(data);
+        if (data.status === "done" || data.status === "failed" || data.status === "stopped") clearInterval(iv);
+      } catch (err) {
+        // Network error (backend cold start, brief outage, etc.) — skip this tick
+        console.warn("Job poll failed, retrying:", err.message);
+      }
     }, 2000);
     return () => clearInterval(iv);
   }, [jobId]);
@@ -274,10 +280,15 @@ function UploadTab() {
   useEffect(() => {
     if (!jobId) return;
     const iv = setInterval(async () => {
-      const res  = await fetch(`${API}/jobs/${jobId}`);
-      const data = await res.json();
-      setJob(data);
-      if (data.status === "done" || data.status === "failed") clearInterval(iv);
+      try {
+        const res  = await fetch(`${API}/jobs/${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setJob(data);
+        if (data.status === "done" || data.status === "failed") clearInterval(iv);
+      } catch (err) {
+        console.warn("Job poll failed, retrying:", err.message);
+      }
     }, 2000);
     return () => clearInterval(iv);
   }, [jobId]);
