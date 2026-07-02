@@ -149,21 +149,21 @@ function logClass(line) {
 }
 
 // ── Stream Tab ─────────────────────────────────────────────
-function StreamTab({ onJobStart, onJobEnd }) {
+function StreamTab({ activeJobId, onJobStart, onJobEnd }) {
   const [url, setUrl]         = useState("");
   const [game, setGame]       = useState("gaming");
-  const [jobId, setJobId]     = useState(null);
   const [job, setJob]         = useState(null);
   const [loading, setLoading] = useState(false);
   const [score, setScore]     = useState(8);
   const [mode, setMode]       = useState("auto");
   const logRef = useRef(null);
 
+  // Resume polling if there's already an active job (e.g. after tab switch)
   useEffect(() => {
-    if (!jobId) return;
+    if (!activeJobId) return;
     const iv = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/jobs/${jobId}`);
+        const res = await fetch(`${API}/jobs/${activeJobId}`);
         if (!res.ok) return;
         const data = await res.json();
         setJob(data);
@@ -176,7 +176,7 @@ function StreamTab({ onJobStart, onJobEnd }) {
       }
     }, 2000);
     return () => clearInterval(iv);
-  }, [jobId]);
+  }, [activeJobId]);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -192,15 +192,14 @@ function StreamTab({ onJobStart, onJobEnd }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed to start");
-      setJobId(data.job_id);
       onJobStart(data.job_id);
     } catch (e) { alert(e.message); }
     finally { setLoading(false); }
   }
 
   async function stop() {
-    if (!jobId) return;
-    await fetch(`${API}/clip/stream/${jobId}`, { method:"DELETE" });
+    if (!activeJobId) return;
+    await fetch(`${API}/clip/stream/${activeJobId}`, { method:"DELETE" });
   }
 
   const isRunning = job?.status === "running";
@@ -621,8 +620,8 @@ function LayoutTab() {
 
 // ── App Shell ──────────────────────────────────────────────
 export default function App() {
-  const [tab, setTab]         = useState("stream");
-  const [activeJob, setActiveJob] = useState(null);
+  const [tab, setTab]               = useState("stream");
+  const [activeJobId, setActiveJobId] = useState(null);
 
   const tabs = [
     { id:"stream", label:"▶ Stream" },
@@ -642,12 +641,18 @@ export default function App() {
           ))}
         </div>
         <div className="nav-status">
-          <div className={`status-dot ${activeJob ? "live" : ""}`} />
-          {activeJob ? "Clipping live" : "Idle"}
+          <div className={`status-dot ${activeJobId ? "live" : ""}`} />
+          {activeJobId ? "Clipping live" : "Idle"}
         </div>
       </nav>
       <main className="main">
-        {tab === "stream" && <StreamTab onJobStart={setActiveJob} onJobEnd={() => setActiveJob(null)} />}
+        {tab === "stream" && (
+          <StreamTab
+            activeJobId={activeJobId}
+            onJobStart={id => setActiveJobId(id)}
+            onJobEnd={() => setActiveJobId(null)}
+          />
+        )}
         {tab === "upload" && <UploadTab />}
         {tab === "clips"  && <ClipsTab />}
         {tab === "layout" && <LayoutTab />}
