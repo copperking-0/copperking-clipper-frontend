@@ -646,16 +646,16 @@ export default function App() {
         </div>
       </nav>
       <main className="main">
-        {tab === "stream" && (
+        <div style={{ display: tab === "stream" ? "block" : "none" }}>
           <StreamTab
             activeJobId={activeJobId}
             onJobStart={id => setActiveJobId(id)}
             onJobEnd={() => setActiveJobId(null)}
           />
-        )}
-        {tab === "upload" && <UploadTab />}
-        {tab === "clips"  && <ClipsTab />}
-        {tab === "layout" && <LayoutTab />}
+        </div>
+        <div style={{ display: tab === "upload" ? "block" : "none" }}><UploadTab /></div>
+        <div style={{ display: tab === "clips"  ? "block" : "none" }}><ClipsTab /></div>
+        <div style={{ display: tab === "layout" ? "block" : "none" }}><LayoutTab /></div>
       </main>
     </div>
   );
